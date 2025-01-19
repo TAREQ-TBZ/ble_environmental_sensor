@@ -1,0 +1,15 @@
+#
+# Copyright (c) 2024 Tareq Mhisen
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
+mainmenu "BLE Environmental Sensor Application"
+
+menu "Application configuration"
+
+# Empty for now
+
+endmenu
+
+source "Kconfig.zephyr"
