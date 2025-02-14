@@ -12,5 +12,6 @@ project(app LANGUAGES C)
 target_sources(app PRIVATE
     src/events_svc.c
     src/main.c
+    src/humidity_temperature_svc.c
     src/user_interface.c
 )
