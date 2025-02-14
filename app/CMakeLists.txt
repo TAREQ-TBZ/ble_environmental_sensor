@@ -10,6 +10,7 @@ find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(app LANGUAGES C)
 
 target_sources(app PRIVATE
+    src/ble_svc.c
     src/events_svc.c
     src/main.c
     src/humidity_temperature_svc.c
