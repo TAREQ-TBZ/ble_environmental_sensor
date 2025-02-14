@@ -1,0 +1,131 @@
+/*
+ * Copyright (c) 2024 Tareq Mhisen
+ */
+
+/dts-v1/;
+#include <nordic/nrf52833_qdaa.dtsi>
+#include "sham_nrf52833-pinctrl.dtsi"
+
+/ {
+	model = "Sham humidity temperature sensor";
+	compatible = "sham_TBZ,sham_nrf52833";
+
+	chosen {
+		zephyr,console = &uart0;
+		zephyr,sram = &sram0;
+		zephyr,flash = &flash0;
+		zephyr,code-partition = &slot0_partition;
+		zephyr,ieee802154 = &ieee802154;
+		ncs,zigbee-timer = &timer2;
+	};
+
+	leds {
+		compatible = "gpio-leds";
+		status_led: red_led {
+			gpios = <&gpio0 11 GPIO_ACTIVE_LOW>;
+		};
+	};
+
+	buttons {
+		compatible = "gpio-keys";
+		user_button: button_0 {
+			gpios = <&gpio1 9 GPIO_ACTIVE_LOW>;
+			label = "User Button";
+		};
+	};
+
+	aliases {
+		led0 = &status_led;
+		sw0 = &user_button;
+	};
+};
+
+&gpiote {
+	status = "okay";
+};
+
+&gpio0 {
+	status = "okay";
+};
+
+&gpio1 {
+	status = "okay";
+	/*
+	 * Currently edge interrupts are using GPIOTE events. Using GPIOTE events results in increased
+	 * power consumption according to product specifications and erratas of some nRF MCUs. In case
+	 * of nRF52833, it is <20uA in System ON Idle. Selecting GPIO SENSE option will allow to reduce
+	 * power consumption.
+	 */
+	sense-edge-mask = <0x00000200>; /* Enable SENSE for pin 9 (user_button) */
+};
+
+&uicr {
+	gpio-as-nreset;
+};
+
+&reg1 {
+	regulator-initial-mode = <NRF5X_REG_MODE_DCDC>;
+};
+
+&uart0 {
+	compatible = "nordic,nrf-uarte";
+	status = "okay";
+	disable-rx;
+	current-speed = <115200>;
+	pinctrl-0 = <&uart0_default>;
+	pinctrl-1 = <&uart0_sleep>;
+	pinctrl-names = "default", "sleep";
+};
+
+&i2c0 {
+	compatible = "nordic,nrf-twim";
+	status = "okay";
+	pinctrl-0 = <&i2c0_default>;
+	pinctrl-1 = <&i2c0_sleep>;
+	pinctrl-names = "default", "sleep";
+	sht4x@44 {
+		compatible = "sensirion,sht4x";
+		reg = <0x44>;
+		repeatability = <2>;
+	};
+};
+
+&timer2 {
+	status = "okay";
+};
+
+/* Enable IEEE 802.14.5 radio in order to zigbee to work */
+&ieee802154 {
+	status = "okay";
+};
+
+/*
+ * All the information regarding partitions defined here will be ignored by Nordic SDK, as soon as a second image (i.e. mcuboot) is enabled.
+ * Nordic has their own approach to define partitions. In case you want to know more about the approach from Nordic,
+  * you can have a look on this documentation: https: //developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/nrf/scripts/partition_manager/partition_manager.html
+  */
+ &flash0 {
+
+	 partitions {
+		 compatible = "fixed-partitions";
+		#address-cells = <1>;
+		#size-cells = <1>;
+
+		boot_partition: partition@0 {
+			label = "mcuboot";
+			reg = <0x00000000 0xC000>;
+		};
+		slot0_partition: partition@c000 {
+			label = "image-0";
+			reg = <0x0000C000 0x37000>;
+		};
+		slot1_partition: partition@43000 {
+			label = "image-1";
+			reg = <0x00043000 0x37000>;
+		};
+		storage_partition: partition@7a000 {
+			label = "storage";
+			reg = <0x0007A000 0x00006000>;
+		};
+	};
+};
