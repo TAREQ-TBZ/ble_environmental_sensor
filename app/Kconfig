@@ -8,7 +8,19 @@ mainmenu "BLE Environmental Sensor Application"
 
 menu "Application configuration"
 
-# Empty for now
+config MIN_ADV_INTERVAL_MS
+    int "Minimum Bluetooth advertisement interval (in milliseconds)"
+    default 500
+    help
+        Defines the shortest time interval between two consecutive Bluetooth advertisement packets. 
+        A lower value increases advertisement frequency, improving device discoverability but consuming more power.
+
+config MAX_ADV_INTERVAL_MS
+    int "Maximum Bluetooth advertisement interval (in milliseconds)"
+    default 501
+    help
+        Defines the longest time interval between two consecutive Bluetooth advertisement packets.
+        A higher value reduces power consumption but may slow down connection establishment.
 
 endmenu
 
