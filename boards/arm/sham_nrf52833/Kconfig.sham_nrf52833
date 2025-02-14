@@ -1,0 +1,4 @@
+# Copyright (c) 2024 Tareq Mhisen
+
+config BOARD_SHAM_NRF52833
+	select SOC_NRF52833_QDAA
