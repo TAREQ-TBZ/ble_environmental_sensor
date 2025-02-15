@@ -8,7 +8,17 @@ mainmenu "BLE Environmental Sensor Application"
 
 menu "Application configuration"
 
-# Empty for now
+config MEASURING_PERIOD_SECONDS
+    int "Sampling period for temperature and humidity measurements (in seconds)"
+    default 30
+    help
+        Defines how frequently the sensor samples temperature and humidity data. Adjust this value to balance between data freshness and power consumption.
+
+config FIRST_MEASUREMENT_DELAY_SECONDS
+    int "Delay before the first measurement after device startup (in seconds)"
+    default 10
+    help
+        Specifies the time to wait after booting before taking the initial measurement. This allows the device to stabilize before collecting data.
 
 endmenu
 
