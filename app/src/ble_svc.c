@@ -12,6 +12,7 @@
 #include <zephyr/sys/byteorder.h>
 
 #include "ble_svc.h"
+#include "events_svc.h"
 
 #include <zephyr/logging/log.h>
 
@@ -101,6 +102,7 @@ static void update_data_length(struct bt_conn *conn)
 
 static void on_connected(struct bt_conn *conn, uint8_t ret)
 {
+	struct event evt;
 	struct bt_conn_info info;
 	double connection_interval;
 	uint16_t supervision_timeout;
@@ -129,16 +131,23 @@ static void on_connected(struct bt_conn *conn, uint8_t ret)
 		update_phy(conn);
 
 		update_data_length(conn);
+
+		evt.type = EVENT_BLE_CONNECTED;
+		events_svc_send_event(&evt);
 	}
 }
 
 static void on_disconnected(struct bt_conn *conn, uint8_t reason)
 {
-	LOG_INF("Disconnected (reason %u)", reason);
+	struct event evt;
+	LOG_DBG("Disconnected (reason %u)", reason);
 
 	k_mutex_lock(&data.data_lock, K_FOREVER);
 	data.ble_connection = NULL;
 	k_mutex_unlock(&data.data_lock);
+
+	evt.type = EVENT_BLE_NOT_CONNECTED;
+	events_svc_send_event(&evt);
 }
 
 static bool on_le_param_req(struct bt_conn *conn, struct bt_le_conn_param *param)
