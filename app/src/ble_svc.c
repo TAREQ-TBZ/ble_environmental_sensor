@@ -10,7 +10,7 @@
 #include <zephyr/bluetooth/uuid.h>
 
 #include "ble_svc.h"
-
+#include "events_svc.h"
 #include <zephyr/logging/log.h>
 
 LOG_MODULE_REGISTER(ble_svc, LOG_LEVEL_INF);
@@ -39,6 +39,7 @@ static const struct bt_data ad[] = {
 
 static void ble_connected(struct bt_conn *conn, uint8_t ret)
 {
+	struct event evt;
 	struct bt_conn_info info;
 	char addr[BT_ADDR_LE_STR_LEN];
 
@@ -59,16 +60,23 @@ static void ble_connected(struct bt_conn *conn, uint8_t ret)
 		LOG_INF("Connection parameters updated: interval %.2f ms, latency %d intervals, "
 			"timeout %d ms",
 			connection_interval, info.le.latency, supervision_timeout);
+
+		evt.type = EVENT_BLE_CONNECTED;
+		events_svc_send_event(&evt);
 	}
 }
 
 static void ble_disconnected(struct bt_conn *conn, uint8_t reason)
 {
+	struct event evt;
 	LOG_INF("Disconnected (reason %u)", reason);
 
 	k_mutex_lock(&data.data_lock, K_FOREVER);
 	data.ble_connection = NULL;
 	k_mutex_unlock(&data.data_lock);
+
+	evt.type = EVENT_BLE_NOT_CONNECTED;
+	events_svc_send_event(&evt);
 }
 
 static bool le_param_req(struct bt_conn *conn, struct bt_le_conn_param *param)
