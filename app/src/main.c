@@ -7,13 +7,15 @@
 #include "ble_svc.h"
 #include "events_svc.h"
 #include "humidity_temperature_svc.h"
+#include "user_interface.h"
 
 #include <zephyr/logging/log.h>
 
 LOG_MODULE_REGISTER(main, LOG_LEVEL_INF);
 
-#define MEASUREMENT_PERIOD_MSEC      (1000 * CONFIG_MEASURING_PERIOD_SECONDS)
-#define FIRST_MEASUREMENT_DELAY_MSEC (1000 * CONFIG_FIRST_MEASUREMENT_DELAY_SECONDS)
+#define MEASUREMENT_PERIOD_MSEC             (1000 * CONFIG_MEASURING_PERIOD_SECONDS)
+#define FIRST_MEASUREMENT_DELAY_MSEC        (1000 * CONFIG_FIRST_MEASUREMENT_DELAY_SECONDS)
+#define STATUS_LED_ON_TIME_FOR_STARTUP_MSEC 250
 
 static void measuring_work_handler(struct k_work *_work)
 {
@@ -39,6 +41,26 @@ static void measuring_work_handler(struct k_work *_work)
 }
 K_WORK_DELAYABLE_DEFINE(measuring_work, measuring_work_handler);
 
+static void btn_callback(enum button_evt evt)
+{
+	int ret;
+	switch (evt) {
+	case BUTTON_EVT_PRESSED_1_SEC:
+		/* TODO: Trigger and send one measurement immediately */
+		break;
+
+	case BUTTON_EVT_PRESSED_3_SEC:
+		break;
+
+	case BUTTON_EVT_PRESSED_10_SEC:
+		/* TODO: Trigger factory Reset */
+		break;
+
+	default:
+		break;
+	}
+}
+
 int main(void)
 {
 	int ret;
@@ -48,13 +70,29 @@ int main(void)
 	ret = humidity_temperature_svc_init();
 	if (ret != 0) {
 		LOG_ERR("Failed to initialize humidity and temperature service!");
+		return ret;
 	}
+
+	ret = ui_gpio_init();
+	if (ret != 0) {
+		LOG_ERR("Failed to initialize user interface service!");
+		return ret;
+	}
+
+	ui_register_button_callback(btn_callback);
 
 	ble_svc_init();
 
 	ret = ble_svc_enable_ble();
 	if (ret != 0) {
 		LOG_ERR("Failed to enable BLE: %d", ret);
+		return ret;
+	}
+
+	ret = ui_flash_status_led(STATUS_LED_ON_TIME_FOR_STARTUP_MSEC);
+	if (ret != 0) {
+		LOG_WRN("Failed to flash status LED: %d", ret);
+		return ret;
 	}
 
 	while (true) {
@@ -63,7 +101,7 @@ int main(void)
 		/* Wait for the next event */
 		ret = events_svc_get_event(&evt);
 		if (ret != 0) {
-			LOG_WRN("Unable to get event. Err: %d", ret);
+			LOG_WRN("Unable to get event: %d", ret);
 			continue;
 		}
 
