@@ -1,0 +1,84 @@
+# Copyright (c) 2025 Tareq Mhisen
+
+name: Build
+
+on:
+  workflow_call:
+    inputs:
+      application:
+        description: 'Application to build (e.g. app)'
+        required: true
+        type: string
+      board:
+        description: 'Board to build for'
+        required: true
+        type: string
+
+    outputs:
+      artifact_name:
+        description: 'Name of the artifact uploaded'
+        value: ${{ inputs.application }}_firmware
+
+jobs:
+  build-firmware:
+    name: Build firmware for ${{ inputs.board }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install required packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake ninja-build git python3-pip gcc-multilib
+
+      - name: Install west
+        run: pip3 install west
+
+      - name: Initialize Zephyr workspace
+        run: |
+          west init -m "https://github.com/${{ github.repository }}.git"
+          cd application
+          git fetch origin "${{ github.ref }}"
+          git checkout FETCH_HEAD
+
+      - name: Update Zephyr modules
+        run: |
+          west update --narrow --fetch-opt="--depth=1"
+          west zephyr-export
+
+      - name: Install Zephyr dependencies
+        run: pip3 install -r zephyr/scripts/requirements.txt
+
+      - name: Get expected Zephyr SDK version
+        run: echo "ZEPHYR_SDK_VERSION=$(cat zephyr/SDK_VERSION)" >> "$GITHUB_ENV"
+
+      - name: Download Zephyr Minimal SDK
+        run: |
+          wget -q https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v${{ env.ZEPHYR_SDK_VERSION }}/zephyr-sdk-${{ env.ZEPHYR_SDK_VERSION }}_linux-x86_64_minimal.tar.xz -O zephyr-sdk.tar.xz
+      
+      - name: Extract Zephyr SDK
+        run: |
+          mkdir -p $HOME/zephyr-sdk
+          tar -xvf zephyr-sdk.tar.xz -C $HOME/zephyr-sdk --strip-components=1
+
+      - name: Set Zephyr SDK Environment
+        run: |
+          echo "ZEPHYR_SDK_INSTALL_DIR=$HOME/zephyr-sdk" >> "$GITHUB_ENV"
+          echo "PATH=$HOME/zephyr-sdk/arm-zephyr-eabi/bin:$PATH" >> "$GITHUB_ENV"
+      
+      - name: Install Toolchains
+        run: |
+          $HOME/zephyr-sdk/setup.sh -t arm-zephyr-eabi
+
+      - name: Build application
+        run: |
+          source zephyr/zephyr-env.sh
+          west build -b ${{ inputs.board }} application/app
+
+      - name: Upload firmware artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.application }}_firmware
+          path: build/app/zephyr/zephyr.hex
