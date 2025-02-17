@@ -5,7 +5,9 @@ The zigbee version can be found under: https://github.com/TAREQ-TBZ/environmenta
 ## ⚡ Key Features
 
 ✅ **Ultra-low power consumption** – Uses only **6µA on average** while its connected it a smart phone and about **11µA on average** while it is advertising, powered by a **CR2032 coin cell** for long-lasting performance.  
-✅ **Reliable wireless communication** – Built around the **nRF52833** microcontroller with a **2.45 GHz PCB monopole antenna**.  
+✅ **Reliable wireless communication** – Built around the **nRF52833** microcontroller with a **2.45 GHz PCB monopole antenna**, supporting both **BLE and Zigbee**.  
+✅ **Built on Zephyr RTOS**, providing a modular and expandable architecture.  
+✅ **Designed for easy expansion**, allowing additional sensors (e.g., pressure, gas) with minimal code modifications.  
 ✅ **High-precision sensing** – Incorporates the **Sensirion SHT40 sensor** with an accuracy of **±0.2°C** and **±1.8% RH**.  
 ✅ **Two buttons** (reset and user-defined functions, currently set for factory reset).  
 ✅ **Status LED** for easy monitoring.  
@@ -34,12 +36,16 @@ For those without a Zigbee network, a **BLE firmware** will enable the device to
 
 The zigbee version can be found under: https://github.com/TAREQ-TBZ/environmental_sensor
 
+- Functions as a **Zigbee sleepy end device**, ensuring low power consumption and seamless integration into existing Zigbee networks and **Home Assistant**.  
+- Supports configurable **device ID, vendor settings, and measurement intervals (TBD)**.  
+
+The zigbee version can be found under: https://github.com/TAREQ-TBZ/environmental_sensor
 
 ---
 
 ## 📢 Contribute & Customize
 
-This project is designed for flexibilit whether you want to tweak the firmware, modify the hardware, or add new features, you are encouraged to contribute, suggest improvements, or fork the project to fit your specific needs.
+This project is designed for flexibility whether you want to tweak the firmware, modify the hardware, or add new features, you are encouraged to contribute, suggest improvements, or fork the project to fit your specific needs.
 
 Let's build smarter, more personalized environmental monitoring together! 🌍🔧
 
