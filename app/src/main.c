@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include <app_version.h>
 #include "ble_svc.h"
 #include "events_svc.h"
 #include "humidity_temperature_svc.h"
@@ -69,6 +70,7 @@ int main(void)
 	int ret;
 
 	LOG_INF("Starting up .. .. ..");
+	LOG_INF("Application Version: %s", APP_VERSION_STRING);
 
 	ret = humidity_temperature_svc_init();
 	if (ret != 0) {
