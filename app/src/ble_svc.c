@@ -181,6 +181,16 @@ void on_le_phy_updated(struct bt_conn *conn, struct bt_conn_le_phy_info *param)
 	}
 }
 
+void on_le_data_len_updated(struct bt_conn *conn, struct bt_conn_le_data_len_info *info)
+{
+	uint16_t tx_len = info->tx_max_len;
+	uint16_t tx_time = info->tx_max_time;
+	uint16_t rx_len = info->rx_max_len;
+	uint16_t rx_time = info->rx_max_time;
+	LOG_DBG("Data length updated. Length %d/%d bytes, time %d/%d us", tx_len, rx_len, tx_time,
+		rx_time);
+}
+
 static void ble_srv_att_mtu_updated(struct bt_conn *conn, uint16_t tx, uint16_t rx)
 {
 	LOG_DBG("ATT MTU: TX = %u bytes, RX = %u bytes", tx, rx);
@@ -196,6 +206,7 @@ static struct bt_conn_cb conn_callbacks = {
 	.le_param_req = on_le_param_req,
 	.le_param_updated = on_le_param_updated,
 	.le_phy_updated = on_le_phy_updated,
+	.le_data_len_updated = on_le_data_len_updated,
 };
 
 static void temperature_cfg_changed(const struct bt_gatt_attr *attr, uint16_t value)
