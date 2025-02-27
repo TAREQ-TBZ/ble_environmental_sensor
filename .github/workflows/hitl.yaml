@@ -1,0 +1,41 @@
+name: Hardware In The Loop Test
+
+on:
+  workflow_call:
+
+jobs:
+  test:
+    runs-on: self-hosted
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v4
+
+      - name: Download the firmware
+        uses: actions/download-artifact@v4
+        with:
+          name: app_firmware_debug
+          path: actions/download-artifact-app
+
+      - name: Install python dependencies
+        run: |
+          python -m venv systemtest-venv
+          systemtest-venv/bin/pip install -r systemtest/requirements.txt
+
+      - name: Run System Test
+        run: |
+          systemtest-venv/bin/pytest -s\
+            --cache-clear \
+            -v \
+            systemtest/ \
+            --fw-image actions/download-artifact-app/merged.hex \
+            --port /dev/ttyUSB0 \
+            --baud 115200 \
+            --hci-transport usb:0 \
+            --junitxml=./systemtest_result.xml
+
+      - name: Publish Test Results
+        uses: EnricoMi/publish-unit-test-result-action/linux@v2
+        if: always()
+        with:
+          files: |
+            ./systemtest_result.xml
