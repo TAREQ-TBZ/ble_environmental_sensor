@@ -76,9 +76,26 @@ jobs:
         run: |
           source zephyr/zephyr-env.sh
           west build -b ${{ inputs.board }} application/app
+      
+      - name: Prepare Firmware Archive
+        run: |
+          mkdir archive
+          echo -n "version: " > archive/version.txt
+          git -C application describe --always --dirty=+ >> archive/version.txt
+          echo "board: ${{ inputs.board }}" >> archive/version.txt
+          echo "application: ${{ inputs.application }}" >> archive/version.txt
 
-      - name: Upload firmware artifact
+          for file in \
+          dfu_application.zip \
+          merged.hex
+          do
+            if [ -e build/$file ]; then
+              cp build/$file archive
+            fi
+          done
+
+      - name: Upload firmware Archive
         uses: actions/upload-artifact@v4
         with:
           name: ${{ inputs.application }}_firmware
-          path: build/app/zephyr/zephyr.hex
+          path: archive/*
