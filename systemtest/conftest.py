@@ -15,6 +15,11 @@ def pytest_addoption(parser):
     parser.addoption(
         "--fw-image", type=str, help="Firmware binary to program to device"
     )
+    parser.addoption(
+        "--hci-transport",
+        type=str,
+        help="The USB transport interfaces with a local Bluetooth USB dongle",
+    )
 
 
 @pytest.fixture(scope="session")
@@ -33,7 +38,11 @@ def get_fw_image(request):
 
 
 @pytest.fixture(scope="session")
+def get_hci_transport_type(request):
+    return request.config.getoption("--hci-transport")
+
+
+@pytest.fixture(scope="session")
 def get_board(get_port, get_baud, get_fw_image):
     board = BOARD(get_port, get_baud, get_fw_image)
     yield board
-    # board.close()

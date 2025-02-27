@@ -10,9 +10,9 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-async def initialize_bluetooth_device():
+async def initialize_bluetooth_device(transport_type):
     """Initialize and return a Bluetooth device."""
-    hci_transport = await open_transport_or_link("usb:1")
+    hci_transport = await open_transport_or_link(transport_type)
     hci_device = Device.with_hci(
         "Bumble",
         Address("F0:F1:F2:F3:F4:F5"),
@@ -24,8 +24,9 @@ async def initialize_bluetooth_device():
 
 
 class BleClient:
-    def __init__(self):
+    def __init__(self, transport_type):
         self.device = None
+        self.transport_type = transport_type
         self.hci_transport = None
         self.connection = None
         self.peer = None
@@ -33,7 +34,9 @@ class BleClient:
 
     async def initialize(self):
         """Initialize the BLE client with a Bluetooth device."""
-        self.device, self.hci_transport = await initialize_bluetooth_device()
+        self.device, self.hci_transport = await initialize_bluetooth_device(
+            self.transport_type
+        )
         return self.device
 
     async def register_listener_callback(self, on_type: str, callback_fn):
