@@ -13,11 +13,19 @@ on:
         description: 'Board to build for'
         required: true
         type: string
+      overlay_configs:
+        description: 'Additional Kconfig config fragments, used with -DOVERLAY_CONFIG= flag (e.g. debug.conf)'
+        required: false
+        type: string
+      artifact_suffix:
+        description: 'Descriptive name for build configuration (e.g. release or debug).'
+        required: true
+        type: string
 
     outputs:
       artifact_name:
         description: 'Name of the artifact uploaded'
-        value: ${{ inputs.application }}_firmware
+        value: ${{ inputs.application }}_firmware_${{ inputs.artifact_suffix }}
 
 jobs:
   build-firmware:
@@ -75,16 +83,11 @@ jobs:
       - name: Build application
         run: |
           source zephyr/zephyr-env.sh
-          west build -b ${{ inputs.board }} application/app
+          west build --sysbuild -b ${{ inputs.board }} application/${{ inputs.application }} -DEXTRA_CONF_FILE=${{ inputs.overlay_configs }}
       
       - name: Prepare Firmware Archive
         run: |
           mkdir archive
-          echo -n "version: " > archive/version.txt
-          git -C application describe --always --dirty=+ >> archive/version.txt
-          echo "board: ${{ inputs.board }}" >> archive/version.txt
-          echo "application: ${{ inputs.application }}" >> archive/version.txt
-
           for file in \
           dfu_application.zip \
           merged.hex
@@ -97,5 +100,5 @@ jobs:
       - name: Upload firmware Archive
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ inputs.application }}_firmware
+          name: ${{ inputs.application }}_firmware_${{ inputs.artifact_suffix }}
           path: archive/*
