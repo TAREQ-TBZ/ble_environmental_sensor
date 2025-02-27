@@ -4,6 +4,11 @@ name: Pull-Request
 
 on: pull_request
 
+# Required permissions for publish test results
+permissions:
+  checks: write
+  pull-requests: write
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -29,3 +34,8 @@ jobs:
 
   code-formatting:
     uses: ./.github/workflows/code_formatting.yaml
+
+  hitl-test:
+    needs:
+      - build
+    uses: ./.github/workflows/hitl.yaml

@@ -90,7 +90,7 @@ def humid_notification_handler(value):
 
 
 @pytest.mark.asyncio
-async def test_ble_device(get_board):
+async def test_ble_device(get_board, get_hci_transport_type):
     # 1. Reset device
     get_board.hard_reset()
     await asyncio.sleep(1)
@@ -101,7 +101,7 @@ async def test_ble_device(get_board):
     ), "Device failed to start advertising"
 
     # 3. Scan and verify advertising data
-    ble_client = BleClient()
+    ble_client = BleClient(get_hci_transport_type)
     try:
         await ble_client.initialize()
         await ble_client.register_listener_callback("advertisement", on_advertisement)

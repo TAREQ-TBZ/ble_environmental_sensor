@@ -83,7 +83,7 @@ jobs:
       - name: Build application
         run: |
           source zephyr/zephyr-env.sh
-          west build -b ${{ inputs.board }} application/app
+          west build --sysbuild -b ${{ inputs.board }} application/${{ inputs.application }} -DEXTRA_CONF_FILE=${{ inputs.overlay_configs }}
       
       - name: Prepare Firmware Archive
         run: |
@@ -100,5 +100,5 @@ jobs:
       - name: Upload firmware Archive
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ inputs.application }}_firmware
+          name: ${{ inputs.application }}_firmware_${{ inputs.artifact_suffix }}
           path: archive/*
