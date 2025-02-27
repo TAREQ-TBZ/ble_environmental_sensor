@@ -15,10 +15,17 @@ jobs:
         include:
           - board: sham_nrf52833
             application: 'app'
+            artifact_suffix: 'release'
+            - board: sham_nrf52833
+            application: 'app'
+            overlay_configs: 'debug.conf'
+            artifact_suffix: 'debug'
     uses: ./.github/workflows/build.yaml
     with:
       board: ${{ matrix.board }}
       application: ${{ matrix.application }}
+      overlay_configs: ${{ matrix.overlay_configs }}
+      artifact_suffix: ${{ matrix.artifact_suffix }}
 
   code-formatting:
     uses: ./.github/workflows/code_formatting.yaml
