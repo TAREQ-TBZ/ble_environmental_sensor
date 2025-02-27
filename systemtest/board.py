@@ -19,6 +19,7 @@ class BOARD:
     def program(self, fw_image):
         with LowLevel.API() as api:
             api.connect_to_emu_without_snr()
+            api.recover()
             api.erase_all()
             api.program_file(self.fw_image)
             api.sys_reset()

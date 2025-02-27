@@ -1,6 +1,6 @@
-import asyncio
 import logging
 from bumble.device import Device, Peer
+from bumble.hci import Address
 from bumble.gatt import show_services
 from bumble.transport import open_transport_or_link
 
@@ -13,8 +13,11 @@ logger = logging.getLogger(__name__)
 async def initialize_bluetooth_device():
     """Initialize and return a Bluetooth device."""
     hci_transport = await open_transport_or_link("usb:1")
-    hci_device = Device.from_config_file_with_hci(
-        "device.json", hci_transport.source, hci_transport.sink
+    hci_device = Device.with_hci(
+        "Bumble",
+        Address("F0:F1:F2:F3:F4:F5"),
+        hci_transport.source,
+        hci_transport.sink,
     )
     await hci_device.power_on()
     return hci_device, hci_transport
