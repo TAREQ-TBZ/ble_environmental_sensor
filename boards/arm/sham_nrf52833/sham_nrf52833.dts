@@ -94,9 +94,9 @@
 	status = "okay";
 };
 
-/* Enable IEEE 802.14.5 radio in order to zigbee to work */
+/* IEEE 802.15.4 radio disabled - not used by this BLE-only application */
 &ieee802154 {
-	status = "okay";
+	status = "disabled";
 };
 
 /*

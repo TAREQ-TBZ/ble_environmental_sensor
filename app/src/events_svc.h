@@ -7,7 +7,9 @@
 #ifndef APP_EVENT_SVC_H_
 #define APP_EVENT_SVC_H_
 
-#define EVENT_QUEUE_SIZE 10
+/* Queue size of 4 is sufficient: only 2 event types (connect/disconnect)
+ * and main thread processes events synchronously */
+#define EVENT_QUEUE_SIZE 4
 
 enum event_type {
 	EVENT_BLE_CONNECTED,
@@ -22,9 +24,9 @@ struct event {
  * @brief Get the text representation of an event
  *
  * @param type event type enum
- * @return char* NULL if error
+ * @return const char* Pointer to static string literal
  */
-char *events_svc_type_to_text(enum event_type type);
+const char *events_svc_type_to_text(enum event_type type);
 
 /**
  * @brief Pushes an event to the message queue

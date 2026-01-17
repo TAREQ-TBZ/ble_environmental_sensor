@@ -31,30 +31,31 @@ int humidity_temperature_svc_trigger_measurement(void)
 		return ret;
 	}
 
+	ret = sensor_channel_get(rh_temp_dev, SENSOR_CHAN_AMBIENT_TEMP, &data.temperature);
+	if (ret != 0) {
+		LOG_ERR("Failed to get temperature channel: %d", ret);
+		return ret;
+	}
+
+	ret = sensor_channel_get(rh_temp_dev, SENSOR_CHAN_HUMIDITY, &data.humidity);
+	if (ret != 0) {
+		LOG_ERR("Failed to get humidity channel: %d", ret);
+		return ret;
+	}
+
+	LOG_DBG("Temperature: %3d.%06d [°C]", data.temperature.val1, data.temperature.val2);
+	LOG_DBG("Humidity: %3d.%06d [%%]", data.humidity.val1, data.humidity.val2);
+
 	return 0;
 }
 
 float humidity_temperature_svc_get_temperature(void)
 {
-	int ret = sensor_channel_get(rh_temp_dev, SENSOR_CHAN_AMBIENT_TEMP, &data.temperature);
-	if (ret) {
-		LOG_ERR("Failed to get sensor channel: %d", ret);
-		return ret;
-	}
-
-	LOG_DBG("Temperature: %3d.%06d [°C]", data.temperature.val1, data.temperature.val2);
 	return sensor_value_to_float(&data.temperature);
 }
 
 float humidity_temperature_svc_get_humidity(void)
 {
-	int ret = sensor_channel_get(rh_temp_dev, SENSOR_CHAN_HUMIDITY, &data.humidity);
-	if (ret) {
-		LOG_ERR("Failed to get sensor channel: %d", ret);
-		return ret;
-	}
-
-	LOG_DBG("Humidity: %3d.%06d [%%]", data.humidity.val1, data.humidity.val2);
 	return sensor_value_to_float(&data.humidity);
 }
 

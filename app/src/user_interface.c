@@ -15,8 +15,6 @@
 
 LOG_MODULE_REGISTER(user_interface, LOG_LEVEL_DBG);
 
-#define LED_ON_TIME_MS 200
-
 static const struct gpio_dt_spec user_button = GPIO_DT_SPEC_GET(DT_ALIAS(sw0), gpios);
 static const struct gpio_dt_spec status_led = GPIO_DT_SPEC_GET(DT_ALIAS(led0), gpios);
 

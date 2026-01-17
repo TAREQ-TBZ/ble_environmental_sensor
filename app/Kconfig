@@ -23,16 +23,20 @@ config FIRST_MEASUREMENT_DELAY_SECONDS
 config MIN_ADV_INTERVAL_MS
     int "Minimum Bluetooth advertisement interval (in milliseconds)"
     default 500
+    range 20 10240
     help
-        Defines the shortest time interval between two consecutive Bluetooth advertisement packets. 
+        Defines the shortest time interval between two consecutive Bluetooth advertisement packets.
         A lower value increases advertisement frequency, improving device discoverability but consuming more power.
+        BLE spec requires minimum 20ms for connectable advertising, maximum 10.24s.
 
 config MAX_ADV_INTERVAL_MS
     int "Maximum Bluetooth advertisement interval (in milliseconds)"
     default 501
+    range 20 10240
     help
         Defines the longest time interval between two consecutive Bluetooth advertisement packets.
         A higher value reduces power consumption but may slow down connection establishment.
+        Must be >= MIN_ADV_INTERVAL_MS. BLE spec maximum is 10.24s.
 
 endmenu
 

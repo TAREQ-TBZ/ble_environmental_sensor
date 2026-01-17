@@ -24,8 +24,8 @@ LOG_MODULE_REGISTER(ble_svc, LOG_LEVEL_INF);
 #define ADV_INTERVAL_UNIT_MS        0.625
 #define CONNECTION_INTERVAL_UNIT_MS 1.25
 #define SUPERVISION_TIMEOUT_UNIT_MS 10
-#define MIN_ADV_INTERVAL            CONFIG_MIN_ADV_INTERVAL_MS / ADV_INTERVAL_UNIT_MS
-#define MAX_ADV_INTERVAL            CONFIG_MAX_ADV_INTERVAL_MS / ADV_INTERVAL_UNIT_MS
+#define MIN_ADV_INTERVAL            (CONFIG_MIN_ADV_INTERVAL_MS / ADV_INTERVAL_UNIT_MS)
+#define MAX_ADV_INTERVAL            (CONFIG_MAX_ADV_INTERVAL_MS / ADV_INTERVAL_UNIT_MS)
 #define MAX_ADV_PAYLOAD             31
 
 struct ble_svc_data {
@@ -83,7 +83,7 @@ static void update_phy(struct bt_conn *conn)
 	};
 	ret = bt_conn_le_phy_update(conn, &preferred_phy);
 	if (ret) {
-		LOG_ERR("Failed to update the proffered PYH %d", ret);
+		LOG_ERR("Failed to update preferred PHY: %d", ret);
 	}
 }
 
@@ -115,25 +115,27 @@ static void on_connected(struct bt_conn *conn, uint8_t ret)
 	if (ret != 0) {
 		LOG_WRN("Connection failed (ret %u)", ret);
 		return;
-	} else if (bt_conn_get_info(conn, &info)) {
-		LOG_WRN("Could not parse connection info");
-	} else {
+	}
+
+	if (bt_conn_get_info(conn, &info) == 0) {
 		bt_addr_le_to_str(bt_conn_get_dst(conn), addr, sizeof(addr));
 
 		connection_interval = info.le.interval * CONNECTION_INTERVAL_UNIT_MS;
 		supervision_timeout = info.le.timeout * SUPERVISION_TIMEOUT_UNIT_MS;
 
-		LOG_INF("Connection established! Connected to : %s ", addr);
-		LOG_DBG("Connection parameters updated: interval %.2f ms, latency %d intervals, "
-			"timeout %d ms",
+		LOG_INF("Connection established! Connected to: %s", addr);
+		LOG_DBG("Connection parameters: interval %.2f ms, latency %d, timeout %d ms",
 			connection_interval, info.le.latency, supervision_timeout);
+	} else {
+		LOG_WRN("Could not parse connection info");
+	}
 
-		update_phy(conn);
+	update_phy(conn);
+	update_data_length(conn);
 
-		update_data_length(conn);
-
-		evt.type = EVENT_BLE_CONNECTED;
-		events_svc_send_event(&evt);
+	evt.type = EVENT_BLE_CONNECTED;
+	if (events_svc_send_event(&evt) != 0) {
+		LOG_WRN("Event queue full, connected event dropped");
 	}
 }
 
@@ -147,7 +149,9 @@ static void on_disconnected(struct bt_conn *conn, uint8_t reason)
 	k_mutex_unlock(&data.data_lock);
 
 	evt.type = EVENT_BLE_NOT_CONNECTED;
-	events_svc_send_event(&evt);
+	if (events_svc_send_event(&evt) != 0) {
+		LOG_WRN("Event queue full, disconnected event dropped");
+	}
 }
 
 static bool on_le_param_req(struct bt_conn *conn, struct bt_le_conn_param *param)
@@ -170,7 +174,7 @@ static void on_le_param_updated(struct bt_conn *conn, uint16_t interval, uint16_
 		connection_interval, latency, supervision_timeout);
 }
 
-void on_le_phy_updated(struct bt_conn *conn, struct bt_conn_le_phy_info *param)
+static void on_le_phy_updated(struct bt_conn *conn, struct bt_conn_le_phy_info *param)
 {
 	if (param->tx_phy == BT_CONN_LE_TX_POWER_PHY_1M) {
 		LOG_DBG("PHY updated. New PHY: 1M");
@@ -181,7 +185,7 @@ void on_le_phy_updated(struct bt_conn *conn, struct bt_conn_le_phy_info *param)
 	}
 }
 
-void on_le_data_len_updated(struct bt_conn *conn, struct bt_conn_le_data_len_info *info)
+static void on_le_data_len_updated(struct bt_conn *conn, struct bt_conn_le_data_len_info *info)
 {
 	uint16_t tx_len = info->tx_max_len;
 	uint16_t tx_time = info->tx_max_time;
@@ -249,18 +253,19 @@ static ssize_t read_humidity(struct bt_conn *conn, const struct bt_gatt_attr *at
 
 /* Constant values from the Assigned Numbers specification:
  * https://www.bluetooth.com/wp-content/uploads/Files/Specification/Assigned_Numbers.pdf?id=89
+ * Per ESS spec: Temperature in 0.01°C, Humidity in 0.01% (exponent = -2)
  */
 static const struct bt_gatt_cpf temperature_cpf = {
-	.format = 0x0E, /* signed 16-bit integer */
-	.exponent = 0x0,
+	.format = 0x0E,        /* signed 16-bit integer */
+	.exponent = -2,        /* value = raw * 10^-2 (0.01°C resolution) */
 	.unit = 0x272F,        /* degree Celsius */
 	.name_space = 0x01,    /* Bluetooth SIG */
 	.description = 0x0106, /* "main" */
 };
 
 static const struct bt_gatt_cpf humidity_cpf = {
-	.format = 0x06, /* unsigned 16-bit integer */
-	.exponent = 0x0,
+	.format = 0x06,        /* unsigned 16-bit integer */
+	.exponent = -2,        /* value = raw * 10^-2 (0.01% resolution) */
 	.unit = 0x27AD,        /* Percentage */
 	.name_space = 0x01,    /* Bluetooth SIG */
 	.description = 0x0106, /* "main" */
@@ -345,6 +350,11 @@ static void bt_ready(int ret)
 	LOG_INF("Advertising successfully started");
 }
 
+/*
+ * Thread-safety: This function must only be called from the system workqueue context.
+ * The manufacture_data is not mutex-protected; concurrent access from multiple contexts
+ * would cause a race condition.
+ */
 void ble_svc_increase_button_press_cnt(void)
 {
 	manufacture_data.btn_press_count++;

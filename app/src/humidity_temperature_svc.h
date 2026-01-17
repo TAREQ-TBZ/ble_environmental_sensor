@@ -19,21 +19,28 @@
 /**
  * @brief Triggers a new measurement for humidity and temperature.
  *
+ * This function fetches new sensor data and caches the values internally.
+ * Call get_temperature() and get_humidity() after this returns successfully.
+ *
  * @return 0 on success, or a negative error code if the measurement fails.
  */
 int humidity_temperature_svc_trigger_measurement(void);
 
 /**
- * @brief Get humidity value.
+ * @brief Get the last measured humidity value.
  *
- * @return Humidity value, or an error code if an error occurs.
+ * @note Call trigger_measurement() first to get fresh data.
+ *
+ * @return Humidity value in percent (0.0 - 100.0).
  */
 float humidity_temperature_svc_get_humidity(void);
 
 /**
- * @brief Get temperature value.
+ * @brief Get the last measured temperature value.
  *
- * @return Temperature value, or an error code if an error occurs.
+ * @note Call trigger_measurement() first to get fresh data.
+ *
+ * @return Temperature value in degrees Celsius.
  */
 float humidity_temperature_svc_get_temperature(void);
 

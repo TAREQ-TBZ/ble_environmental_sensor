@@ -13,7 +13,7 @@ LOG_MODULE_REGISTER(events_svc);
 
 K_MSGQ_DEFINE(event_msq, sizeof(struct event), EVENT_QUEUE_SIZE, 4);
 
-char *events_svc_type_to_text(enum event_type type)
+const char *events_svc_type_to_text(enum event_type type)
 {
 	switch (type) {
 	case EVENT_BLE_CONNECTED:

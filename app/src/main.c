@@ -18,6 +18,11 @@ LOG_MODULE_REGISTER(main, LOG_LEVEL_INF);
 #define FIRST_MEASUREMENT_DELAY_MSEC        (1000 * CONFIG_FIRST_MEASUREMENT_DELAY_SECONDS)
 #define STATUS_LED_ON_TIME_FOR_STARTUP_MSEC 250
 
+/*
+ * Thread-safety: This struct is only accessed from the main thread context.
+ * BLE events arrive via the thread-safe message queue (events_svc), ensuring
+ * no concurrent access occurs.
+ */
 struct main_data {
 	bool ble_is_connected;
 	bool measuring_started;
@@ -36,12 +41,12 @@ static void measuring_work_handler(struct k_work *_work)
 	} else {
 		ret = ble_svc_update_humidity_value(humidity_temperature_svc_get_humidity());
 		if (ret != 0) {
-			LOG_WRN("Failed to update temperature measurement over BLE: %d", ret);
+			LOG_WRN("Failed to update humidity measurement over BLE: %d", ret);
 		}
 
 		ret = ble_svc_update_temperature_value(humidity_temperature_svc_get_temperature());
 		if (ret != 0) {
-			LOG_WRN("Failed to update humidity measurement over BLE: %d", ret);
+			LOG_WRN("Failed to update temperature measurement over BLE: %d", ret);
 		}
 	}
 

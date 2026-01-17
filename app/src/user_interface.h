@@ -7,6 +7,8 @@
 #ifndef APP_USER_INTERFACE_H_
 #define APP_USER_INTERFACE_H_
 
+#include <stdint.h>
+
 enum button_evt {
 	BUTTON_EVT_NONE,
 	BUTTON_EVT_PRESSED_1_SEC,
