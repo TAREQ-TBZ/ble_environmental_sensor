@@ -1,0 +1,11 @@
+# Copyright (c) 2024 Tareq Mhisen
+# SPDX-License-Identifier: Apache-2.0
+
+board:
+  name: sham_nrf52833
+  full_name: SHAM Humidity Temperature Sensor
+  vendor: sham_TBZ
+  socs:
+    - name: nrf52833
+      variants:
+        - name: nrf52833qiaa
