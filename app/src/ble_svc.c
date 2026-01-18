@@ -9,6 +9,7 @@
 #include <zephyr/bluetooth/conn.h>
 #include <zephyr/bluetooth/gatt.h>
 #include <zephyr/bluetooth/uuid.h>
+#include <zephyr/sys/atomic.h>
 #include <zephyr/sys/byteorder.h>
 
 #include "ble_svc.h"
@@ -30,9 +31,8 @@ LOG_MODULE_REGISTER(ble_svc, LOG_LEVEL_INF);
 
 struct ble_svc_data {
 	struct bt_conn *ble_connection;
-	int16_t temperature;
-	uint16_t humidity;
-	struct k_mutex data_lock;
+	atomic_t temperature;
+	atomic_t humidity;
 };
 
 static struct ble_svc_data data;
@@ -108,14 +108,12 @@ static void on_connected(struct bt_conn *conn, uint8_t ret)
 	uint16_t supervision_timeout;
 	char addr[BT_ADDR_LE_STR_LEN];
 
-	k_mutex_lock(&data.data_lock, K_FOREVER);
-	data.ble_connection = conn;
-	k_mutex_unlock(&data.data_lock);
-
 	if (ret != 0) {
 		LOG_WRN("Connection failed (ret %u)", ret);
 		return;
 	}
+
+	data.ble_connection = bt_conn_ref(conn);
 
 	if (bt_conn_get_info(conn, &info) == 0) {
 		bt_addr_le_to_str(bt_conn_get_dst(conn), addr, sizeof(addr));
@@ -142,11 +140,15 @@ static void on_connected(struct bt_conn *conn, uint8_t ret)
 static void on_disconnected(struct bt_conn *conn, uint8_t reason)
 {
 	struct event evt;
+	struct bt_conn *old;
+
 	LOG_DBG("Disconnected (reason %u)", reason);
 
-	k_mutex_lock(&data.data_lock, K_FOREVER);
+	old = data.ble_connection;
 	data.ble_connection = NULL;
-	k_mutex_unlock(&data.data_lock);
+	if (old) {
+		bt_conn_unref(old);
+	}
 
 	evt.type = EVENT_BLE_NOT_CONNECTED;
 	if (events_svc_send_event(&evt) != 0) {
@@ -234,9 +236,7 @@ static void humidity_cfg_changed(const struct bt_gatt_attr *attr, uint16_t value
 static ssize_t read_temperature(struct bt_conn *conn, const struct bt_gatt_attr *attr, void *buf,
 				uint16_t len, uint16_t offset)
 {
-	k_mutex_lock(&data.data_lock, K_FOREVER);
-	int16_t temperature = data.temperature;
-	k_mutex_unlock(&data.data_lock);
+	int16_t temperature = (int16_t)atomic_get(&data.temperature);
 
 	return bt_gatt_attr_read(conn, attr, buf, len, offset, &temperature, sizeof(temperature));
 }
@@ -244,9 +244,7 @@ static ssize_t read_temperature(struct bt_conn *conn, const struct bt_gatt_attr 
 static ssize_t read_humidity(struct bt_conn *conn, const struct bt_gatt_attr *attr, void *buf,
 			     uint16_t len, uint16_t offset)
 {
-	k_mutex_lock(&data.data_lock, K_FOREVER);
-	uint16_t humidity = data.humidity;
-	k_mutex_unlock(&data.data_lock);
+	uint16_t humidity = (uint16_t)atomic_get(&data.humidity);
 
 	return bt_gatt_attr_read(conn, attr, buf, len, offset, &humidity, sizeof(humidity));
 }
@@ -287,18 +285,18 @@ int ble_svc_update_temperature_value(float temp_value)
 {
 	int ret;
 	struct bt_conn *conn;
+	int16_t temperature;
 
 	if (temp_value > 125 || temp_value < -20) {
 		return -EINVAL;
 	}
 
-	k_mutex_lock(&data.data_lock, K_FOREVER);
+	temperature = (int16_t)(temp_value * 100);
+	atomic_set(&data.temperature, temperature);
 	conn = data.ble_connection;
-	data.temperature = (int16_t)(temp_value * 100);
-	k_mutex_unlock(&data.data_lock);
 
-	ret = bt_gatt_notify(conn, &environmental_sensing_service.attrs[1], &data.temperature,
-			     sizeof(data.temperature));
+	ret = bt_gatt_notify(conn, &environmental_sensing_service.attrs[1], &temperature,
+			     sizeof(temperature));
 
 	return ret == -ENOTCONN ? 0 : ret;
 }
@@ -307,18 +305,18 @@ int ble_svc_update_humidity_value(float hum_value)
 {
 	int ret;
 	struct bt_conn *conn;
+	uint16_t humidity;
 
 	if (hum_value > 100 || hum_value < 0) {
 		return -EINVAL;
 	}
 
-	k_mutex_lock(&data.data_lock, K_FOREVER);
+	humidity = (uint16_t)(hum_value * 100);
+	atomic_set(&data.humidity, humidity);
 	conn = data.ble_connection;
-	data.humidity = (uint16_t)(hum_value * 100);
-	k_mutex_unlock(&data.data_lock);
 
-	ret = bt_gatt_notify(conn, &environmental_sensing_service.attrs[5], &data.humidity,
-			     sizeof(data.humidity));
+	ret = bt_gatt_notify(conn, &environmental_sensing_service.attrs[5], &humidity,
+			     sizeof(humidity));
 
 	return ret == -ENOTCONN ? 0 : ret;
 }
@@ -396,7 +394,6 @@ void ble_svc_init(void)
 	size_t adv_size;
 	size_t scan_resp_size;
 
-	k_mutex_init(&data.data_lock);
 	bt_conn_cb_register(&conn_callbacks);
 	bt_gatt_cb_register(&ble_srv_gatt_cb);
 
