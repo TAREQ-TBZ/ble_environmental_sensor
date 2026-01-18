@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2024 Tareq Mhisen
+ * SPDX-License-Identifier: Apache-2.0
  */
 
 /dts-v1/;
@@ -102,12 +103,12 @@
 /*
  * All the information regarding partitions defined here will be ignored by Nordic SDK, as soon as a second image (i.e. mcuboot) is enabled.
  * Nordic has their own approach to define partitions. In case you want to know more about the approach from Nordic,
-  * you can have a look on this documentation: https: //developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/nrf/scripts/partition_manager/partition_manager.html
-  */
- &flash0 {
+ * you can have a look on this documentation: https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/nrf/scripts/partition_manager/partition_manager.html
+ */
+&flash0 {
 
-	 partitions {
-		 compatible = "fixed-partitions";
+	partitions {
+		compatible = "fixed-partitions";
 		#address-cells = <1>;
 		#size-cells = <1>;
 
