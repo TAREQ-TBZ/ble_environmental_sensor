@@ -27,6 +27,7 @@ struct main_data {
 	bool ble_is_connected;
 	bool measuring_started;
 	struct ui_button_callback btn_cb;
+	struct humidity_temperature_data ht_sensor;
 };
 
 static struct main_data data;
@@ -38,13 +39,13 @@ static void measuring_work_handler(struct k_work *_work)
 	float temperature;
 	struct k_work_delayable *work = k_work_delayable_from_work(_work);
 
-	ret = humidity_temperature_svc_trigger_measurement();
+	ret = humidity_temperature_svc_trigger_measurement(&data.ht_sensor);
 	if (ret != 0) {
 		LOG_ERR("Failed to trigger humidity and temperature measurement: %d", ret);
 		goto reschedule;
 	}
 
-	ret = humidity_temperature_svc_get_humidity(&humidity);
+	ret = humidity_temperature_svc_get_humidity(&data.ht_sensor, &humidity);
 	if (ret != 0) {
 		LOG_ERR("Failed to get humidity value: %d", ret);
 		goto reschedule;
@@ -55,7 +56,7 @@ static void measuring_work_handler(struct k_work *_work)
 		LOG_WRN("Failed to update humidity measurement over BLE: %d", ret);
 	}
 
-	ret = humidity_temperature_svc_get_temperature(&temperature);
+	ret = humidity_temperature_svc_get_temperature(&data.ht_sensor, &temperature);
 	if (ret != 0) {
 		LOG_ERR("Failed to get temperature value: %d", ret);
 		goto reschedule;
@@ -102,7 +103,8 @@ int main(void)
 	LOG_INF("Starting up .. .. ..");
 	LOG_INF("Application Version: %s", APP_VERSION_STRING);
 
-	ret = humidity_temperature_svc_init();
+	ret = humidity_temperature_svc_init(&data.ht_sensor,
+					   DEVICE_DT_GET_ONE(sensirion_sht4x));
 	if (ret != 0) {
 		LOG_ERR("Failed to initialize humidity and temperature service!");
 		return ret;
