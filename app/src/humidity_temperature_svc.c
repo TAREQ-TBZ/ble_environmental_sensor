@@ -49,14 +49,24 @@ int humidity_temperature_svc_trigger_measurement(void)
 	return 0;
 }
 
-float humidity_temperature_svc_get_temperature(void)
+int humidity_temperature_svc_get_temperature(float *temp)
 {
-	return sensor_value_to_float(&data.temperature);
+	if (temp == NULL) {
+		return -EINVAL;
+	}
+
+	*temp = sensor_value_to_float(&data.temperature);
+	return 0;
 }
 
-float humidity_temperature_svc_get_humidity(void)
+int humidity_temperature_svc_get_humidity(float *hum)
 {
-	return sensor_value_to_float(&data.humidity);
+	if (hum == NULL) {
+		return -EINVAL;
+	}
+
+	*hum = sensor_value_to_float(&data.humidity);
+	return 0;
 }
 
 int humidity_temperature_svc_init(void)

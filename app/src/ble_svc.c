@@ -353,11 +353,11 @@ static void bt_ready(int ret)
  * The manufacture_data is not mutex-protected; concurrent access from multiple contexts
  * would cause a race condition.
  */
-void ble_svc_increase_button_press_cnt(void)
+int ble_svc_increase_button_press_cnt(void)
 {
 	manufacture_data.btn_press_count++;
 
-	bt_le_adv_update_data(ad, ARRAY_SIZE(ad), sd, ARRAY_SIZE(sd));
+	return bt_le_adv_update_data(ad, ARRAY_SIZE(ad), sd, ARRAY_SIZE(sd));
 }
 
 int ble_svc_enable_ble(void)
@@ -389,7 +389,7 @@ int ble_svc_enable_ble(void)
 	return 0;
 }
 
-void ble_svc_init(void)
+int ble_svc_init(void)
 {
 	size_t adv_size;
 	size_t scan_resp_size;
@@ -400,13 +400,20 @@ void ble_svc_init(void)
 	adv_size = ble_get_payload_size(ad, ARRAY_SIZE(ad));
 	scan_resp_size = ble_get_payload_size(sd, ARRAY_SIZE(sd));
 
-	__ASSERT(adv_size <= MAX_ADV_PAYLOAD,
-		 "Advertisement payload size exceeded the maximum size (Max: 31 bytes), size: %zu",
-		 adv_size);
-	__ASSERT(scan_resp_size <= MAX_ADV_PAYLOAD,
-		 "Scan response payload size exceeded the maximum size (Max: 31 bytes), size: %zu",
-		 scan_resp_size);
+	if (adv_size > MAX_ADV_PAYLOAD) {
+		LOG_ERR("Advertisement payload size exceeded maximum (Max: 31 bytes), size: %zu",
+			adv_size);
+		return -ENOMEM;
+	}
+
+	if (scan_resp_size > MAX_ADV_PAYLOAD) {
+		LOG_ERR("Scan response payload size exceeded maximum (Max: 31 bytes), size: %zu",
+			scan_resp_size);
+		return -ENOMEM;
+	}
 
 	LOG_DBG("Actual Advertisement Packet Size: %zu bytes (Max: 31 bytes)", adv_size);
 	LOG_DBG("Actual Scan Response Packet Size: %zu bytes (Max: 31 bytes)", scan_resp_size);
+
+	return 0;
 }

@@ -18,21 +18,26 @@ LOG_MODULE_REGISTER(user_interface, LOG_LEVEL_DBG);
 static const struct gpio_dt_spec user_button = GPIO_DT_SPEC_GET(DT_ALIAS(sw0), gpios);
 static const struct gpio_dt_spec status_led = GPIO_DT_SPEC_GET(DT_ALIAS(led0), gpios);
 
-static struct gpio_callback user_button_cb_data;
-static void (*button_callback)(enum button_evt evt) = NULL;
+struct user_interface_data {
+	struct gpio_callback gpio_cb;
+	struct ui_button_callback *button_cb;
+	enum button_evt btn_event;
+};
 
-static enum button_evt btn_event = BUTTON_EVT_NONE;
+static struct user_interface_data data = {
+	.btn_event = BUTTON_EVT_NONE,
+};
 
 static void button_increase_time(struct k_work *_work)
 {
 	struct k_work_delayable *work = k_work_delayable_from_work(_work);
 
-	if (btn_event < BUTTON_EVT_PRESSED_10_SEC) /* Last press event */ {
-		btn_event++;
+	if (data.btn_event < BUTTON_EVT_PRESSED_10_SEC) /* Last press event */ {
+		data.btn_event++;
 		k_work_reschedule(work, K_SECONDS(1));
 	}
 
-	if (btn_event == BUTTON_EVT_PRESSED_10_SEC) {
+	if (data.btn_event == BUTTON_EVT_PRESSED_10_SEC) {
 		ui_set_status_led_on();
 	}
 }
@@ -43,17 +48,17 @@ static void button_handler(struct k_work *work)
 	ARG_UNUSED(work);
 	struct k_work_sync sync;
 
-	if (button_callback) {
+	if (data.button_cb && data.button_cb->handler) {
 		int value = gpio_pin_get_dt(&user_button);
 		if (value == 1) /* 1 = pressed, 0 = released */ {
-			btn_event = BUTTON_EVT_PRESSED_1_SEC;
+			data.btn_event = BUTTON_EVT_PRESSED_1_SEC;
 			k_work_reschedule(&button_increase_time_work, K_SECONDS(1));
 			return;
 		}
 		/* Button released */
 		k_work_cancel_delayable_sync(&button_increase_time_work, &sync);
-		button_callback(btn_event);
-		btn_event = BUTTON_EVT_NONE;
+		data.button_cb->handler(data.button_cb, data.btn_event);
+		data.btn_event = BUTTON_EVT_NONE;
 	} else {
 		LOG_WRN("No registered user button callback!");
 	}
@@ -67,9 +72,9 @@ static void button_pressed_callback(const struct device *dev, struct gpio_callba
 	k_work_reschedule(&debouncing_work, K_MSEC(15));
 }
 
-void ui_register_button_callback(void (*callback)(enum button_evt evt))
+void ui_register_button_callback(struct ui_button_callback *cb)
 {
-	button_callback = callback;
+	data.button_cb = cb;
 }
 
 int ui_toggle_status_led(void)
@@ -135,9 +140,9 @@ int ui_gpio_init(void)
 		return ret;
 	}
 
-	gpio_init_callback(&user_button_cb_data, button_pressed_callback, BIT(user_button.pin));
+	gpio_init_callback(&data.gpio_cb, button_pressed_callback, BIT(user_button.pin));
 
-	ret = gpio_add_callback(user_button.port, &user_button_cb_data);
+	ret = gpio_add_callback(user_button.port, &data.gpio_cb);
 	if (ret < 0) {
 		LOG_ERR("Failed to add button callback: %d", ret);
 		return ret;

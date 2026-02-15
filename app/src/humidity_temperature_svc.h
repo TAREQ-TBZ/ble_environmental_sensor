@@ -31,18 +31,22 @@ int humidity_temperature_svc_trigger_measurement(void);
  *
  * @note Call trigger_measurement() first to get fresh data.
  *
- * @return Humidity value in percent (0.0 - 100.0).
+ * @param[out] hum Pointer to store the humidity value in percent (0.0 - 100.0).
+ *
+ * @return 0 on success, or a negative error code on failure.
  */
-float humidity_temperature_svc_get_humidity(void);
+int humidity_temperature_svc_get_humidity(float *hum);
 
 /**
  * @brief Get the last measured temperature value.
  *
  * @note Call trigger_measurement() first to get fresh data.
  *
- * @return Temperature value in degrees Celsius.
+ * @param[out] temp Pointer to store the temperature value in degrees Celsius.
+ *
+ * @return 0 on success, or a negative error code on failure.
  */
-float humidity_temperature_svc_get_temperature(void);
+int humidity_temperature_svc_get_temperature(float *temp);
 
 /**
  * @brief Initialize the humidity and temperature sensor.

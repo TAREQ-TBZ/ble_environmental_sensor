@@ -28,8 +28,10 @@ int ble_svc_update_temperature_value(float temp_value);
 /**
  * @brief Temporaily function to demonstrare updateing the ble advertisement data manually at rum
  * time
+ *
+ * @return 0 on success, or error code on failure.
  */
-void ble_svc_increase_button_press_cnt(void);
+int ble_svc_increase_button_press_cnt(void);
 
 /**
  * @brief Enables BLE and start advertising.
@@ -40,7 +42,9 @@ int ble_svc_enable_ble(void);
 
 /**
  * @brief Initialize BLE service.
+ *
+ * @return 0 on success, or error code on failure.
  */
-void ble_svc_init(void);
+int ble_svc_init(void);
 
 #endif /* APP_BLE_SVC_H_ */

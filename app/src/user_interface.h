@@ -23,12 +23,18 @@ enum button_evt {
 	BUTTON_EVT_PRESSED_10_SEC,
 };
 
+struct ui_button_callback {
+	void (*handler)(struct ui_button_callback *cb, enum button_evt evt);
+};
+
 /**
- * @brief Register a callback function for the user button.
+ * @brief Register a callback for the user button.
  *
- * @param callback Function pointer to the user callback function.
+ * @param cb Pointer to the callback struct. Must remain valid for the
+ *           lifetime of the registration. The caller embeds this struct
+ *           in its own data and uses CONTAINER_OF in the handler.
  */
-void ui_register_button_callback(void (*callback)(enum button_evt evt));
+void ui_register_button_callback(struct ui_button_callback *cb);
 
 /**
  * @brief Toggle the status LED.

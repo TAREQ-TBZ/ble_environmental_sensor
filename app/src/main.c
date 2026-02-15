@@ -26,6 +26,7 @@ LOG_MODULE_REGISTER(main, LOG_LEVEL_INF);
 struct main_data {
 	bool ble_is_connected;
 	bool measuring_started;
+	struct ui_button_callback btn_cb;
 };
 
 static struct main_data data;
@@ -33,32 +34,56 @@ static struct main_data data;
 static void measuring_work_handler(struct k_work *_work)
 {
 	int ret;
+	float humidity;
+	float temperature;
 	struct k_work_delayable *work = k_work_delayable_from_work(_work);
 
 	ret = humidity_temperature_svc_trigger_measurement();
 	if (ret != 0) {
 		LOG_ERR("Failed to trigger humidity and temperature measurement: %d", ret);
-	} else {
-		ret = ble_svc_update_humidity_value(humidity_temperature_svc_get_humidity());
-		if (ret != 0) {
-			LOG_WRN("Failed to update humidity measurement over BLE: %d", ret);
-		}
-
-		ret = ble_svc_update_temperature_value(humidity_temperature_svc_get_temperature());
-		if (ret != 0) {
-			LOG_WRN("Failed to update temperature measurement over BLE: %d", ret);
-		}
+		goto reschedule;
 	}
 
+	ret = humidity_temperature_svc_get_humidity(&humidity);
+	if (ret != 0) {
+		LOG_ERR("Failed to get humidity value: %d", ret);
+		goto reschedule;
+	}
+
+	ret = ble_svc_update_humidity_value(humidity);
+	if (ret != 0) {
+		LOG_WRN("Failed to update humidity measurement over BLE: %d", ret);
+	}
+
+	ret = humidity_temperature_svc_get_temperature(&temperature);
+	if (ret != 0) {
+		LOG_ERR("Failed to get temperature value: %d", ret);
+		goto reschedule;
+	}
+
+	ret = ble_svc_update_temperature_value(temperature);
+	if (ret != 0) {
+		LOG_WRN("Failed to update temperature measurement over BLE: %d", ret);
+	}
+
+reschedule:
 	k_work_reschedule(work, K_MSEC(MEASUREMENT_PERIOD_MSEC));
 }
 K_WORK_DELAYABLE_DEFINE(measuring_work, measuring_work_handler);
 
-static void btn_callback(enum button_evt evt)
+static void btn_callback(struct ui_button_callback *cb, enum button_evt evt)
 {
+	struct main_data *self = CONTAINER_OF(cb, struct main_data, btn_cb);
+	int ret;
+
+	ARG_UNUSED(self);
+
 	switch (evt) {
 	case BUTTON_EVT_PRESSED_1_SEC:
-		ble_svc_increase_button_press_cnt();
+		ret = ble_svc_increase_button_press_cnt();
+		if (ret != 0) {
+			LOG_WRN("Failed to update button press count: %d", ret);
+		}
 		break;
 
 	case BUTTON_EVT_PRESSED_10_SEC:
@@ -89,9 +114,14 @@ int main(void)
 		return ret;
 	}
 
-	ui_register_button_callback(btn_callback);
+	data.btn_cb.handler = btn_callback;
+	ui_register_button_callback(&data.btn_cb);
 
-	ble_svc_init();
+	ret = ble_svc_init();
+	if (ret != 0) {
+		LOG_ERR("Failed to initialize BLE service: %d", ret);
+		return ret;
+	}
 
 	ret = ble_svc_enable_ble();
 	if (ret != 0) {
