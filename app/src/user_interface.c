@@ -20,7 +20,8 @@ static const struct gpio_dt_spec status_led = GPIO_DT_SPEC_GET(DT_ALIAS(led0), g
 
 struct user_interface_data {
 	struct gpio_callback gpio_cb;
-	struct ui_button_callback *button_cb;
+	/** Callback Pattern: list of callbacks for one-to-many button notifications */
+	sys_slist_t button_callbacks;
 	enum button_evt btn_event;
 };
 
@@ -47,21 +48,29 @@ static void button_handler(struct k_work *work)
 {
 	ARG_UNUSED(work);
 	struct k_work_sync sync;
+	sys_snode_t *node;
 
-	if (data.button_cb && data.button_cb->handler) {
-		int value = gpio_pin_get_dt(&user_button);
-		if (value == 1) /* 1 = pressed, 0 = released */ {
-			data.btn_event = BUTTON_EVT_PRESSED_1_SEC;
-			k_work_reschedule(&button_increase_time_work, K_SECONDS(1));
-			return;
-		}
-		/* Button released */
-		k_work_cancel_delayable_sync(&button_increase_time_work, &sync);
-		data.button_cb->handler(data.button_cb, data.btn_event);
-		data.btn_event = BUTTON_EVT_NONE;
-	} else {
-		LOG_WRN("No registered user button callback!");
+	int value = gpio_pin_get_dt(&user_button);
+
+	if (value == 1) /* 1 = pressed, 0 = released */ {
+		data.btn_event = BUTTON_EVT_PRESSED_1_SEC;
+		k_work_reschedule(&button_increase_time_work, K_SECONDS(1));
+		return;
 	}
+
+	/* Button released */
+	k_work_cancel_delayable_sync(&button_increase_time_work, &sync);
+
+	/* Callback Pattern: notify all registered observers (one-to-many) */
+	SYS_SLIST_FOR_EACH_NODE(&data.button_callbacks, node) {
+		struct ui_button_callback *cb =
+			CONTAINER_OF(node, struct ui_button_callback, node);
+		if (cb->handler) {
+			cb->handler(cb, data.btn_event);
+		}
+	}
+
+	data.btn_event = BUTTON_EVT_NONE;
 }
 static K_WORK_DELAYABLE_DEFINE(debouncing_work, button_handler);
 
@@ -74,7 +83,12 @@ static void button_pressed_callback(const struct device *dev, struct gpio_callba
 
 void ui_register_button_callback(struct ui_button_callback *cb)
 {
-	data.button_cb = cb;
+	sys_slist_append(&data.button_callbacks, &cb->node);
+}
+
+void ui_remove_button_callback(struct ui_button_callback *cb)
+{
+	sys_slist_find_and_remove(&data.button_callbacks, &cb->node);
 }
 
 int ui_toggle_status_led(void)

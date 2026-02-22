@@ -7,6 +7,41 @@
 #ifndef APP_BLE_SVC_H_
 #define APP_BLE_SVC_H_
 
+#include <zephyr/sys/slist.h>
+
+/**
+ * Callback Pattern: Connection event callback struct with multiple operations.
+ *
+ * This demonstrates a callback struct with multiple function pointers (ops),
+ * allowing observers to handle different events from the same subject.
+ * The sys_snode_t enables one-to-many notifications via a linked list.
+ * Observers use CONTAINER_OF on the callback pointer to recover their context.
+ *
+ * IMPORTANT: These callbacks fire in the Bluetooth thread context.
+ * Observers must not perform time-consuming operations directly in
+ * the handler. Use k_work to defer heavy processing to a work queue.
+ */
+struct ble_svc_conn_callback {
+	sys_snode_t node;
+	void (*connected)(struct ble_svc_conn_callback *cb);
+	void (*disconnected)(struct ble_svc_conn_callback *cb);
+};
+
+/**
+ * @brief Register a connection event callback (supports multiple observers).
+ *
+ * @param cb Pointer to the callback struct. Must remain valid for the
+ *           lifetime of the registration.
+ */
+void ble_svc_add_conn_callback(struct ble_svc_conn_callback *cb);
+
+/**
+ * @brief Remove a previously registered connection event callback.
+ *
+ * @param cb Pointer to the callback struct to remove.
+ */
+void ble_svc_remove_conn_callback(struct ble_svc_conn_callback *cb);
+
 /**
  * @brief Updates BLE humidity value and notifies clients.
  *

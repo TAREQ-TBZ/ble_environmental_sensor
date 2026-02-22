@@ -16,6 +16,9 @@ LOG_MODULE_REGISTER(humidity_temperature_svc, LOG_LEVEL_DBG);
 int humidity_temperature_svc_trigger_measurement(struct humidity_temperature_data *self)
 {
 	int ret;
+	sys_snode_t *node;
+	float temperature;
+	float humidity;
 
 	ret = sensor_sample_fetch(self->dev);
 	if (ret != 0) {
@@ -36,6 +39,18 @@ int humidity_temperature_svc_trigger_measurement(struct humidity_temperature_dat
 
 	LOG_DBG("Temperature: %3d.%06d [°C]", self->temperature.val1, self->temperature.val2);
 	LOG_DBG("Humidity: %3d.%06d [%%]", self->humidity.val1, self->humidity.val2);
+
+	/* Callback Pattern: notify all measurement observers with new data */
+	temperature = sensor_value_to_float(&self->temperature);
+	humidity = sensor_value_to_float(&self->humidity);
+
+	SYS_SLIST_FOR_EACH_NODE(&self->callbacks, node) {
+		struct humidity_temperature_callback *cb =
+			CONTAINER_OF(node, struct humidity_temperature_callback, node);
+		if (cb->on_measurement) {
+			cb->on_measurement(cb, temperature, humidity);
+		}
+	}
 
 	return 0;
 }
@@ -60,10 +75,23 @@ int humidity_temperature_svc_get_humidity(struct humidity_temperature_data *self
 	return 0;
 }
 
+void humidity_temperature_svc_add_callback(struct humidity_temperature_data *self,
+					   struct humidity_temperature_callback *cb)
+{
+	sys_slist_append(&self->callbacks, &cb->node);
+}
+
+void humidity_temperature_svc_remove_callback(struct humidity_temperature_data *self,
+					      struct humidity_temperature_callback *cb)
+{
+	sys_slist_find_and_remove(&self->callbacks, &cb->node);
+}
+
 int humidity_temperature_svc_init(struct humidity_temperature_data *self, const struct device *dev)
 {
 	memset(self, 0, sizeof(*self));
 	self->dev = dev;
+	sys_slist_init(&self->callbacks);
 
 	if (!device_is_ready(self->dev)) {
 		LOG_ERR("Failed to initialize humidity and temperature sensor!");

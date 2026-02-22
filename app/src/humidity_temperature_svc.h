@@ -8,6 +8,7 @@
 #define APP_ENVIRONMENTAL_SENSORS_H_
 
 #include <zephyr/drivers/sensor.h>
+#include <zephyr/sys/slist.h>
 
 /* Measurements ranges for SHT40 sensor */
 #define SENSOR_TEMP_CELSIUS_MIN       -40
@@ -16,10 +17,25 @@
 #define SENSOR_HUMIDITY_PERCENT_MIN   0
 #define SENSOR_HUMIDITY_PERCENT_MAX   100
 
+/**
+ * Callback Pattern: Measurement-ready callback struct.
+ *
+ * Observers embed this struct in their own data and use CONTAINER_OF
+ * in the handler to recover their private context. The handler receives
+ * the measured values directly as parameters (data via callback arguments).
+ */
+struct humidity_temperature_callback {
+	sys_snode_t node;
+	void (*on_measurement)(struct humidity_temperature_callback *cb,
+			       float temperature, float humidity);
+};
+
 struct humidity_temperature_data {
 	const struct device *dev;
 	struct sensor_value humidity;
 	struct sensor_value temperature;
+	/** Callback Pattern: list of measurement observers (one-to-many) */
+	sys_slist_t callbacks;
 };
 
 /**
@@ -67,5 +83,24 @@ int humidity_temperature_svc_get_humidity(struct humidity_temperature_data *self
  * @return 0 on success, or a negative error code on failure.
  */
 int humidity_temperature_svc_get_temperature(struct humidity_temperature_data *self, float *temp);
+
+/**
+ * @brief Register a measurement callback (supports multiple observers).
+ *
+ * @param[in] self Pointer to the sensor data object.
+ * @param[in] cb   Pointer to the callback struct. Must remain valid for the
+ *                 lifetime of the registration.
+ */
+void humidity_temperature_svc_add_callback(struct humidity_temperature_data *self,
+					   struct humidity_temperature_callback *cb);
+
+/**
+ * @brief Remove a previously registered measurement callback.
+ *
+ * @param[in] self Pointer to the sensor data object.
+ * @param[in] cb   Pointer to the callback struct to remove.
+ */
+void humidity_temperature_svc_remove_callback(struct humidity_temperature_data *self,
+					      struct humidity_temperature_callback *cb);
 
 #endif /* APP_ENVIRONMENTAL_SENSORS_H_ */

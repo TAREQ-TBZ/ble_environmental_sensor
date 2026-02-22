@@ -13,7 +13,6 @@
 #include <zephyr/sys/byteorder.h>
 
 #include "ble_svc.h"
-#include "events_svc.h"
 
 #include <zephyr/logging/log.h>
 
@@ -33,6 +32,8 @@ struct ble_svc_data {
 	struct bt_conn *ble_connection;
 	atomic_t temperature;
 	atomic_t humidity;
+	/** Callback Pattern: list of connection event observers (one-to-many) */
+	sys_slist_t conn_callbacks;
 };
 
 static struct ble_svc_data data;
@@ -102,11 +103,11 @@ static void update_data_length(struct bt_conn *conn)
 
 static void on_connected(struct bt_conn *conn, uint8_t ret)
 {
-	struct event evt;
 	struct bt_conn_info info;
 	double connection_interval;
 	uint16_t supervision_timeout;
 	char addr[BT_ADDR_LE_STR_LEN];
+	sys_snode_t *node;
 
 	if (ret != 0) {
 		LOG_WRN("Connection failed (ret %u)", ret);
@@ -131,16 +132,21 @@ static void on_connected(struct bt_conn *conn, uint8_t ret)
 	update_phy(conn);
 	update_data_length(conn);
 
-	evt.type = EVENT_BLE_CONNECTED;
-	if (events_svc_send_event(&evt) != 0) {
-		LOG_WRN("Event queue full, connected event dropped");
+	/* Callback Pattern: notify all registered connection observers (one-to-many).
+	 * Note: runs in BT thread context - observers should defer heavy work. */
+	SYS_SLIST_FOR_EACH_NODE(&data.conn_callbacks, node) {
+		struct ble_svc_conn_callback *cb =
+			CONTAINER_OF(node, struct ble_svc_conn_callback, node);
+		if (cb->connected) {
+			cb->connected(cb);
+		}
 	}
 }
 
 static void on_disconnected(struct bt_conn *conn, uint8_t reason)
 {
-	struct event evt;
 	struct bt_conn *old;
+	sys_snode_t *node;
 
 	LOG_DBG("Disconnected (reason %u)", reason);
 
@@ -150,9 +156,13 @@ static void on_disconnected(struct bt_conn *conn, uint8_t reason)
 		bt_conn_unref(old);
 	}
 
-	evt.type = EVENT_BLE_NOT_CONNECTED;
-	if (events_svc_send_event(&evt) != 0) {
-		LOG_WRN("Event queue full, disconnected event dropped");
+	/* Callback Pattern: notify all registered disconnection observers */
+	SYS_SLIST_FOR_EACH_NODE(&data.conn_callbacks, node) {
+		struct ble_svc_conn_callback *cb =
+			CONTAINER_OF(node, struct ble_svc_conn_callback, node);
+		if (cb->disconnected) {
+			cb->disconnected(cb);
+		}
 	}
 }
 
@@ -389,11 +399,22 @@ int ble_svc_enable_ble(void)
 	return 0;
 }
 
+void ble_svc_add_conn_callback(struct ble_svc_conn_callback *cb)
+{
+	sys_slist_append(&data.conn_callbacks, &cb->node);
+}
+
+void ble_svc_remove_conn_callback(struct ble_svc_conn_callback *cb)
+{
+	sys_slist_find_and_remove(&data.conn_callbacks, &cb->node);
+}
+
 int ble_svc_init(void)
 {
 	size_t adv_size;
 	size_t scan_resp_size;
 
+	sys_slist_init(&data.conn_callbacks);
 	bt_conn_cb_register(&conn_callbacks);
 	bt_gatt_cb_register(&ble_srv_gatt_cb);
 
