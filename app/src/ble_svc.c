@@ -38,7 +38,7 @@ struct ble_svc_data {
 static struct ble_svc_data data;
 
 static const struct bt_le_adv_param *adv_param =
-	BT_LE_ADV_PARAM(BT_LE_ADV_OPT_CONNECTABLE, MIN_ADV_INTERVAL, MAX_ADV_INTERVAL,
+	BT_LE_ADV_PARAM(BT_LE_ADV_OPT_CONN, MIN_ADV_INTERVAL, MAX_ADV_INTERVAL,
 			NULL); /* Set to NULL for undirected advertising */
 
 struct adv_manufacture_data {
@@ -118,7 +118,8 @@ static void on_connected(struct bt_conn *conn, uint8_t ret)
 	if (bt_conn_get_info(conn, &info) == 0) {
 		bt_addr_le_to_str(bt_conn_get_dst(conn), addr, sizeof(addr));
 
-		connection_interval = info.le.interval * CONNECTION_INTERVAL_UNIT_MS;
+		connection_interval =
+			BT_GAP_US_TO_CONN_INTERVAL(info.le.interval_us) * 1.25; // in ms
 		supervision_timeout = info.le.timeout * SUPERVISION_TIMEOUT_UNIT_MS;
 
 		LOG_INF("Connection established! Connected to: %s", addr);
