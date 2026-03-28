@@ -1,0 +1,15 @@
+{
+    "configurations": [
+        {
+            "name": "Zephyr (active build)",
+            "compileCommands": "${workspaceFolder}/build/active/compile_commands.json",
+            "cStandard": "c11",
+            "cppStandard": "c++17"
+        }
+    ],
+    "version": 4
+}
+// VS Code IntelliSense setup that works across ESP32-C6 + STM32 + Nordic
+// Use a single stable path for IntelliSense:
+// build/active/compile_commands.json
+// Then each “build” task updates build/active to point to the last-built board directory.

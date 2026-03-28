@@ -1,0 +1,11 @@
+{
+    "C_Cpp.default.compileCommands": "${workspaceFolder}/build/active/compile_commands.json",
+    "files.watcherExclude": {
+        "**/build/**": true,
+        "**/.west/**": true
+    },
+    "search.exclude": {
+        "**/build/**": true,
+        "**/.west/**": true
+    }
+}

@@ -1,0 +1,67 @@
+{
+  "name": "Zephyr Dev (Template)",
+  // "build": {
+  //   "dockerfile": "Dockerfile",
+  //   "context": "..",
+  //   "args": {
+  //     "TOOLCHAIN_LIST": "-t riscv64-zephyr-elf -t xtensa-espressif_esp32s3_zephyr-elf -t arm-zephyr-eabi"
+  //   }
+  // },
+  "image": "ghcr.io/tareq-tbz/zephyr-setup:devcontainer",
+  "remoteUser": "vscode",
+  "runArgs": [
+    "--privileged",
+    "-v",
+    "/dev:/dev"
+  ],
+  "updateRemoteUserUID": true,
+  "workspaceMount": "source=${localWorkspaceFolder},target=/home/vscode/application,type=bind",
+  "workspaceFolder": "/home/vscode/application",
+  "mounts": [
+    // SEGGER J-Link tools needs to be installed on host:
+    // Install J-Link Software and Documentation Pack for linux in .deb format from:
+    // https://www.segger.com/downloads/jlink/
+    // Read https://docs.zephyrproject.org/latest/develop/flash_debug/nordic_segger.html
+    "source=/opt/SEGGER/JLink,target=/opt/SEGGER/JLink,type=bind,readonly",
+    // STMicroelectronics STM32CubeCLT needs to be installed on host:
+    // Install it for linux from https://www.st.com/en/development-tools/stm32cubeclt.html
+    // Then unzip the installer and run sudo sh ./st-stm32cubeclt_VERSION_ARCHITECTURE.PACKAGE
+    // For example: sudo sh st-stm32cubeclt_1.20.0_26822_20251117_1245_amd64.sh
+    // Read https://docs.zephyrproject.org/latest/develop/flash_debug/host-tools.html#stm32cubeclt-flash-debug-host-tools
+    "source=/opt/st/stm32cubeclt_1.20.0,target=/opt/st/stm32cubeclt_1.20.0,type=bind,readonly",
+    "source=zephyr-ccache,target=/home/vscode/.cache/ccache,type=volume"
+  ],
+  "containerEnv": {
+    "CCACHE_DIR": "/home/vscode/.cache/ccache"
+  },
+  "remoteEnv": {
+    // Add SEGGER J-Link and STM32CubeProgrammer tools to PATH so that it can be discovered by west flash
+    "PATH": "${containerEnv:PATH}:/opt/SEGGER/JLink"
+  },
+  // Make stm32cubeprogrammer runner work without --cli:
+  // it defaults to $HOME/STMicroelectronics/STM32Cube/STM32CubeProgrammer/bin/STM32_Programmer_CLI on Linux.
+  "postCreateCommand": "bash -lc 'set -euo pipefail; mkdir -p \"$HOME/STMicroelectronics/STM32Cube\"; CLT_DIR=$(ls -d /opt/st/stm32cubeclt_* 2>/dev/null | head -n1 || true); if [ -n \"$CLT_DIR\" ] && [ -d \"$CLT_DIR/STM32CubeProgrammer\" ]; then ln -sfn \"$CLT_DIR/STM32CubeProgrammer\" \"$HOME/STMicroelectronics/STM32Cube/STM32CubeProgrammer\"; fi'",
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash",
+        "extensions.ignoreRecommendations": true
+      },
+      "extensions": [
+        // core
+        "ms-vscode.cpptools",
+        // zephyr
+        "nordic-semiconductor.nrf-devicetree",
+        // debug
+        "mcu-debug.debug-tracker-vscode", // needed by cortex-debug
+        "marus25.cortex-debug",
+        "ms-vscode.vscode-serial-monitor",
+        // editing
+        "stkb.rewrap",
+        "wayou.vscode-todo-highlight",
+        // task utils
+        "augustocdias.tasks-shell-input" // MANDATORY for dynamic task input
+      ]
+    }
+  }
+}
