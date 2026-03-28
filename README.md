@@ -1,117 +1,202 @@
-# 🌡️ Environmental Sensor - BLE Version
+# Environmental Sensor - BLE
 
-The zigbee version can be found under: https://github.com/TAREQ-TBZ/environmental_sensor
+A BLE environmental sensor firmware built on [Zephyr RTOS](https://www.zephyrproject.org/) v4.3.0. Measures temperature and humidity using a Sensirion SHT4x sensor and transmits readings over Bluetooth Low Energy (Environmental Sensing Service).
 
-## ⚡ Key Features
+The Zigbee version can be found at: https://github.com/TAREQ-TBZ/environmental_sensor
 
-✅ **Ultra-low power consumption** – Uses only **6µA on average** while its connected it a smart phone and about **11µA on average** while it is advertising, powered by a **CR2032 coin cell** for long-lasting performance.  
-✅ **Reliable wireless communication** – Built around the **nRF52833** microcontroller with a **2.45 GHz PCB monopole antenna**, supporting both **BLE and Zigbee**.  
-✅ **Built on Zephyr RTOS**, providing a modular and expandable architecture.  
-✅ **Designed for easy expansion**, allowing additional sensors (e.g., pressure, gas) with minimal code modifications.  
-✅ **High-precision sensing** – Incorporates the **Sensirion SHT40 sensor** with an accuracy of **±0.2°C** and **±1.8% RH**.  
-✅ **Two buttons** (reset and user-defined functions, currently set for factory reset).  
-✅ **Status LED** for easy monitoring.  
-✅ **Pin header** for debugging or external peripherals.  
-✅ **Tag-Connect programming header** for effortless firmware updates.  
+## Key Features
+
+- **Ultra-low power** - ~6 uA connected, ~11 uA advertising, powered by CR2032 coin cell
+- **BLE peripheral** with Environmental Sensing Service (temperature + humidity notifications)
+- **OTA DFU** via MCUboot + MCUmgr over BLE
+- **Custom PCB** with nRF52833 + SHT40 + 2.45 GHz PCB monopole antenna
 
 | Board top side | Board bottom side |
-|-------------------------|-------------------------|
+|---|---|
 | ![Board top side](docs/images/Board_top.jpeg?s=300) | ![Board bottom side](docs/images/Board_bottom.jpeg?s=300) |
 
----
+### Current consumption
 
-## 🔧 Firmware & Integration
-
-### 📶 BLE Mode
-
-For those without a Zigbee network, a **BLE firmware** will enable the device to act as a **Bluetooth Low Energy temperature and humidity sensor**, transmitting real-time data directly to a smartphone.
-
-## Current consumption
-
-| Device is advertising | Device is connected |
-|-------------------------|-------------------------|
+| Advertising | Connected |
+|---|---|
 | ![advertising](docs/images/device_is_advertising.png?s=300) | ![connected](docs/images/device_is_connected.png?s=300) |
 
-### 📡 Zigbee Mode  
+## Supported Boards
 
-The zigbee version can be found under: https://github.com/TAREQ-TBZ/environmental_sensor
+| Board | Type | Description |
+|---|---|---|
+| `sham_nrf52833` | Custom board | Target hardware (nRF52833 + SHT40). Full support including MCUboot OTA. |
+| `esp32s3_devkitc/esp32s3/procpu` | Dev board | ESP32-S3 DevKitC with SHT3xD sensor for development/testing. |
 
-- Functions as a **Zigbee sleepy end device**, ensuring low power consumption and seamless integration into existing Zigbee networks and **Home Assistant**.  
-- Supports configurable **device ID, vendor settings, and measurement intervals (TBD)**.  
+## Getting Started
 
-The zigbee version can be found under: https://github.com/TAREQ-TBZ/environmental_sensor
+There are two ways to set up the development environment:
 
----
+1. **VS Code Dev Container** (recommended) - all toolchains and dependencies pre-installed
+2. **Manual setup** - install Zephyr SDK and tools on your host machine
 
-## 📢 Contribute & Customize
+### Option 1: VS Code Dev Container
 
-This project is designed for flexibility whether you want to tweak the firmware, modify the hardware, or add new features, you are encouraged to contribute, suggest improvements, or fork the project to fit your specific needs.
+**Prerequisites:** [Docker](https://docs.docker.com/get-docker/) and [VS Code](https://code.visualstudio.com/) with the [Dev Containers](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) extension.
 
-Let's build smarter, more personalized environmental monitoring together! 🌍🔧
+1. Clone the repository:
+   ```shell
+   git clone git@github.com:TAREQ-TBZ/ble_environmental_sensor.git
+   ```
 
-## Getting started
+2. Open the repository folder in VS Code:
+   ```shell
+   code ble_environmental_sensor
+   ```
 
-Before getting started, make sure you have a proper nRF Connect SDK development environment.
-Follow the official
-[Getting started guide](https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/nrf/getting_started.html).
+3. When prompted **"Reopen in Container"**, click yes. Or use the command palette: `Dev Containers: Rebuild and Reopen in Container`.
 
-### Initialization
+4. Wait for the container to build. On first run this downloads the Zephyr SDK, toolchains, and all Zephyr modules (~20 min depending on network speed). Subsequent starts are instant.
+
+5. Build from the VS Code terminal:
+   ```shell
+   west build -p always -b sham_nrf52833 app
+   ```
+
+The container mounts the repository at `/home/vscode/application` and uses its `west.yml` directly as the west workspace manifest. All Zephyr modules, toolchains (ARM, RISC-V, Xtensa), and host tools are pre-installed.
+
+> **Building the container image locally:** The `devcontainer.json` defaults to a pre-built image. To build locally (e.g., to customize toolchains), uncomment the `"build"` section in `.devcontainer/devcontainer.json` and comment out the `"image"` line.
+
+### Option 2: Manual Setup (Terminal)
+
+**Prerequisites:** Linux host with Python 3.10+, `cmake`, `ninja-build`, `git`, `device-tree-compiler`, and the [Zephyr SDK](https://docs.zephyrproject.org/latest/develop/getting_started/index.html).
 
 ```shell
-# Prepare workspace and virtual env
-mkdir ws
-python -m venv --copies ws/.venv
-. ws/.venv/bin/activate
+# Create workspace and virtual environment
+mkdir ws && cd ws
+python3 -m venv .venv
+source .venv/bin/activate
 pip install west
 
-# Initialize workspace
-west init -m git@github.com:TAREQ-TBZ/ble_environmental_sensor.git --mr main ws
-cd ws
+# Initialize workspace from the application manifest
+west init -m git@github.com:TAREQ-TBZ/ble_environmental_sensor.git --mr main
 west update
-
-# Install additional requirements
 pip install -r zephyr/scripts/requirements.txt
-pip install -r nrf/scripts/requirements.txt
-pip install -r bootloader/mcuboot/scripts/requirements.txt
-```
 
-### Building and running
+# For ESP32 targets: fetch required binary blobs
+west blobs fetch hal_espressif
 
-To build the main application, run the following command:
-
-```shell
-west build --sysbuild -b <YOURBOARD> application/app
-```
-
-To build the application for the sham_nrf52833 board
-
-```shell
+# Build
 west build -b sham_nrf52833 application/app
 ```
 
-To build the application for the nrf52840dk board with the overlay
+> **Note:** When using the manual setup, build commands run from the workspace root (`ws/`) and the application path is `application/app`. In the Dev Container, you are already inside the `application/` directory, so the path is just `app`.
+
+## Building
+
+All build commands below assume you are inside the Dev Container or in the `application/` directory. When using the manual setup from the workspace root, replace `app` with `application/app`.
+
+### sham_nrf52833 (Target Hardware)
 
 ```shell
-west build -b nrf52840dk/nrf52840 application/app -DDTC_OVERLAY_FILE=../boards/arm/nrf52840dk_nrf52840.overlay
+# Standard build
+west build -p always -b sham_nrf52833 app
+
+# With MCUboot bootloader (required for OTA DFU)
+west build -p always --sysbuild -b sham_nrf52833 app
+
+# Debug build (enables UART logging at 115200 baud)
+west build -p always -b sham_nrf52833 app -DEXTRA_CONF_FILE=debug.conf
 ```
 
-To flash the firmware:
+### ESP32-S3 DevKitC
 
 ```shell
+west build -p always -b esp32s3_devkitc/esp32s3/procpu app
+```
+
+The board overlay at `app/boards/esp32s3_devkitc_esp32s3_procpu.overlay` defines the LED pin and SHT3xD sensor for this dev board.
+
+## Flashing
+
+### sham_nrf52833
+
+The default flash runner is `nrfjprog`. Supported runners: `nrfjprog`, `nrfutil`, `jlink`, `pyocd`, `openocd`.
+
+```shell
+# Flash using the default runner (nrfjprog)
 west flash
+
+# Or specify a runner explicitly
+west flash -r jlink
+west flash -r openocd
 ```
 
-## Building with vscode
+When using sysbuild, specify the app domain to flash the application (MCUboot + app are both flashed):
 
-Add the board folder and application to NRF Connect in your .vscode/settings.json
-
-```json
-{
-    "nrf-connect.applications": [
-        "${workspaceFolder}/application/app"
-    ],
-    "nrf-connect.boardRoots": [
-        "${workspaceFolder}/application/"
-    ]
-}
+```shell
+west flash -d build
 ```
+
+> **J-Link:** Requires [SEGGER J-Link](https://www.segger.com/downloads/jlink/) installed on the host. In the Dev Container, it is bind-mounted from `/opt/SEGGER/JLink`.
+
+### ESP32-S3 DevKitC
+
+```shell
+# Flash over USB
+west flash -r esp32
+
+# Monitor serial output
+west espressif monitor
+```
+
+## OTA DFU (Over-The-Air Firmware Update)
+
+The firmware supports OTA updates via MCUmgr over BLE when built with `--sysbuild` (which includes MCUboot).
+
+Build with sysbuild to produce a signed firmware image:
+
+```shell
+west build -p always --sysbuild -b sham_nrf52833 app
+```
+
+The signed application image is at `build/app/zephyr/zephyr.signed.bin`. Use any MCUmgr-compatible client (e.g., the [nRF Connect](https://www.nordicsemi.com/Products/Development-tools/nRF-Connect-for-mobile) mobile app or the [mcumgr CLI](https://docs.zephyrproject.org/latest/services/device_mgmt/mcumgr.html)) to upload the image over BLE.
+
+## Configuration
+
+Application-specific Kconfig options are defined in `app/Kconfig`:
+
+| Option | Default | Description |
+|---|---|---|
+| `CONFIG_MEASURING_PERIOD_SECONDS` | 30 | Sensor sampling interval (seconds) |
+| `CONFIG_FIRST_MEASUREMENT_DELAY_SECONDS` | 10 | Delay before first measurement after boot |
+| `CONFIG_MIN_ADV_INTERVAL_MS` | 500 | Minimum BLE advertising interval (ms) |
+| `CONFIG_MAX_ADV_INTERVAL_MS` | 501 | Maximum BLE advertising interval (ms) |
+
+Override at build time:
+
+```shell
+west build -p always -b sham_nrf52833 app -DCONFIG_MEASURING_PERIOD_SECONDS=60
+```
+
+## Code Formatting
+
+CI enforces formatting on all pull requests.
+
+```shell
+# C code (uses .clang-format: LLVM-based, 8-space tabs, 100-column limit)
+clang-format -i app/src/*.c app/src/*.h
+
+# Python
+black systemtest/
+```
+
+## Hardware
+
+The KiCad design files (schematic, PCB, BOM) are in `Hardware_files/sham_nrf52833/`.
+
+Key components:
+- Nordic nRF52833 (QDAA package)
+- Sensirion SHT40 temperature/humidity sensor (I2C, address 0x44)
+- 2.45 GHz PCB monopole antenna
+- CR2032 coin cell holder
+- Status LED + user button
+
+## License
+
+This project is licensed under the Apache License 2.0. See [LICENSE](LICENSE) for details.

@@ -1,0 +1,70 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    // ---------------- ESP32-S3 ----------------
+    {
+      "label": "west: build (esp32s3)",
+      "type": "shell",
+      "command": "west build -p always --sysbuild -b esp32s3_devkitc/esp32s3/procpu -S flash-16M -S psram-8M app -d build/esp32s3 -- -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCONFIG_SPIRAM_MODE_OCT=y -DZEPHYR_SCA_VARIANT=dtdoctor -DEXTRA_CONF_FILE=debug.conf && ln -sfn esp32s3 build/active",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [
+        "$gcc"
+      ]
+    },
+    {
+      "label": "west: flash (esp32s3, vendor esp32 runner)",
+      "type": "shell",
+      "command": "west flash -d build/esp32s3 -r esp32",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      }
+    },
+    {
+      "label": "west: flash (esp32s3, openocd runner)",
+      "type": "shell",
+      "command": "west flash -d build/esp32s3 -r openocd",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      }
+      // Note: ESP32 OpenOCD often needs Espressif-patched OpenOCD; see Zephyr ESP32 OpenOCD docs. :contentReference[oaicite:2]{index=2}
+    },
+    {
+      "label": "west: monitor (esp32s3)",
+      "type": "shell",
+      "command": "west espressif monitor -d build/esp32s3",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      }
+    },
+    // ---------------- sham_nrf52833 ----------------
+    {
+      "label": "west: build (sham_nrf52833)",
+      "type": "shell",
+      "command": "west build -p always --sysbuild -b sham_nrf52833 app -d build/sham_nrf52833 -- -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DZEPHYR_SCA_VARIANT=dtdoctor -DEXTRA_CONF_FILE=debug.conf && ln -sfn sham_nrf52833 build/active",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [
+        "$gcc"
+      ]
+    },
+    {
+      "label": "west: flash (sham_nrf52833,jlink runner)",
+      "type": "shell",
+      "command": "west flash -d build/sham_nrf52833 -r jlink",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      }
+    },
+    {
+      "label": "west: flash (sham_nrf52833, openocd runner)",
+      "type": "shell",
+      "command": "west flash -d build/sham_nrf52833 -r openocd",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      }
+    },
+  ]
+}
