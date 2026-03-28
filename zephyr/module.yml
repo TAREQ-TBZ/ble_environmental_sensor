@@ -4,7 +4,7 @@
 
 build:
   settings:
-    # Additional roots for boards and DTS files. Zephyr will use the
-    # `<board_root>/boards` for additional boards. The `.` is the root of this
-    # repository.
-    board_root: .
+    # Additional roots for board definitions. Zephyr will search
+    # `<board_root>/boards` for custom boards. Points to the app
+    # directory where board definitions live under app/boards/.
+    board_root: app
