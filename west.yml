@@ -3,12 +3,12 @@ manifest:
     path: application
 
   remotes:
-    - name: ncs
-      url-base: https://github.com/nrfconnect
+    - name: zephyrproject-rtos
+      url-base: https://github.com/zephyrproject-rtos
 
   projects:
-    - name: nrf
-      remote: ncs
-      repo-path: sdk-nrf
-      revision: v3.2.1
+    - name: zephyr
+      remote: zephyrproject-rtos
+      path: zephyr
+      revision: v4.3.0
       import: true
