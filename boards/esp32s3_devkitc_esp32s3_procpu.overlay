@@ -1,0 +1,19 @@
+/*
+ * Copyright (c) 2024 Tareq Mhisen
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/ {
+	aliases {
+		sht-sensor = &sht3xd;
+	};
+};
+
+&i2c0 {
+	status = "okay";
+	sht3xd: sht3xd@44 {
+		compatible = "sensirion,sht3xd";
+		reg = <0x44>;
+	};
+};

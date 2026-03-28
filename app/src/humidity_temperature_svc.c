@@ -13,7 +13,7 @@
 
 LOG_MODULE_REGISTER(humidity_temperature_svc, LOG_LEVEL_DBG);
 
-static const struct device *const rh_temp_dev = DEVICE_DT_GET_ONE(sensirion_sht4x);
+static const struct device *const rh_temp_dev = DEVICE_DT_GET(DT_ALIAS(sht_sensor));
 
 struct humidity_temperature_data {
 	struct sensor_value humidity;

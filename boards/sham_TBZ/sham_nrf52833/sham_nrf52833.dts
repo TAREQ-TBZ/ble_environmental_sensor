@@ -38,6 +38,7 @@
 	aliases {
 		led0 = &status_led;
 		sw0 = &user_button;
+		sht-sensor = &sht4x;
 	};
 };
 
@@ -84,7 +85,7 @@
 	pinctrl-0 = <&i2c0_default>;
 	pinctrl-1 = <&i2c0_sleep>;
 	pinctrl-names = "default", "sleep";
-	sht4x@44 {
+	sht4x: sht4x@44 {
 		compatible = "sensirion,sht4x";
 		reg = <0x44>;
 		repeatability = <2>;
