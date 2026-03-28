@@ -5,7 +5,15 @@
  */
 
 / {
+	leds {
+		compatible = "gpio-leds";
+		status_led: red_led {
+			gpios = <&gpio0 38 GPIO_ACTIVE_LOW>;
+		};
+	};
+
 	aliases {
+		led0 = &status_led;
 		sht-sensor = &sht3xd;
 	};
 };
