@@ -118,9 +118,7 @@ static void on_connected(struct bt_conn *conn, uint8_t ret)
 	if (bt_conn_get_info(conn, &info) == 0) {
 		bt_addr_le_to_str(bt_conn_get_dst(conn), addr, sizeof(addr));
 
-		connection_interval =
-			BT_GAP_US_TO_CONN_INTERVAL(info.le.interval_us) * 1.25; // in ms
-		supervision_timeout = info.le.timeout * SUPERVISION_TIMEOUT_UNIT_MS;
+		connection_interval = info.le.interval * CONNECTION_INTERVAL_UNIT_MS;
 
 		LOG_INF("Connection established! Connected to: %s", addr);
 		LOG_DBG("Connection parameters: interval %.2f ms, latency %d, timeout %d ms",
